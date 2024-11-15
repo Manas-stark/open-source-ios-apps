@@ -1,0 +1,106 @@
+// Set up the canvas and context
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Game variables
+const birdWidth = 20;
+const birdHeight = 20;
+const gravity = 0.6;
+const lift = -15;
+const pipeWidth = 50;
+const pipeGap = 100;
+const pipeFrequency = 90; // every 90 frames a new pipe comes
+
+let birdY = canvas.height / 2;
+let birdVelocity = 0;
+let birdX = 50;
+
+let pipes = [];
+let score = 0;
+let gameOver = false;
+
+// Event listener for jump (spacebar or click)
+document.addEventListener("keydown", jump);
+document.addEventListener("click", jump);
+
+function jump() {
+  if (gameOver) resetGame();
+  birdVelocity = lift;
+}
+
+// Game loop
+function gameLoop() {
+  if (gameOver) return;
+  
+  // Clear the canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Apply gravity to the bird
+  birdVelocity += gravity;
+  birdY += birdVelocity;
+
+  // Draw the bird
+  ctx.fillStyle = "yellow";
+  ctx.fillRect(birdX, birdY, birdWidth, birdHeight);
+
+  // Create new pipes
+  if (frameCount % pipeFrequency === 0) {
+    let pipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap));
+    pipes.push({ x: canvas.width, height: pipeHeight });
+  }
+
+  // Move and draw pipes
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    let pipe = pipes[i];
+    pipe.x -= 2; // Pipe speed
+
+    // Draw the top and bottom pipes
+    ctx.fillStyle = "green";
+    ctx.fillRect(pipe.x, 0, pipeWidth, pipe.height); // Top pipe
+    ctx.fillRect(pipe.x, pipe.height + pipeGap, pipeWidth, canvas.height - pipe.height - pipeGap); // Bottom pipe
+
+    // Check for collisions with pipes
+    if (
+      birdX + birdWidth > pipe.x &&
+      birdX < pipe.x + pipeWidth &&
+      (birdY < pipe.height || birdY + birdHeight > pipe.height + pipeGap)
+    ) {
+      gameOver = true;
+    }
+
+    // Remove pipes that have passed the screen
+    if (pipe.x + pipeWidth < 0) {
+      pipes.splice(i, 1);
+      score++;
+    }
+  }
+
+  // Check if bird hits the ground or goes above the screen
+  if (birdY + birdHeight >= canvas.height || birdY < 0) {
+    gameOver = true;
+  }
+
+  // Draw the score
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 30);
+
+  // Request the next frame
+  frameCount++;
+  requestAnimationFrame(gameLoop);
+}
+
+// Reset the game
+function resetGame() {
+  birdY = canvas.height / 2;
+  birdVelocity = 0;
+  pipes = [];
+  score = 0;
+  gameOver = false;
+  frameCount = 0;
+  gameLoop();
+}
+
+// Start the game
+let frameCount = 0;
+gameLoop();
